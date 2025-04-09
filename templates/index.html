@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediExplain AI - Brain Tumor Classifier</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #3367d6;
+            --secondary: #4285f4;
+            --success: #0f9d58;
+            --danger: #db4437;
+            --light-bg: #f8f9fa;
+            --dark-bg: #343a40;
+        }
+        
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f5f7fa;
+            color: #333;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+        
+        .upload-section {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+        }
+        
+        .drop-zone {
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            padding: 3rem 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .drop-zone:hover {
+            border-color: var(--secondary);
+            background-color: rgba(66, 133, 244, 0.05);
+        }
+        
+        .drop-zone.active {
+            border-color: var(--secondary);
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+        
+        .drop-zone-input {
+            display: none;
+        }
+        
+        .drop-zone-prompt {
+            color: #767676;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+        
+        .drop-zone-icon {
+            font-size: 3rem;
+            color: var(--secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .result-section {
+            display: none;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        
+        .result-header {
+            background-color: var(--dark-bg);
+            color: white;
+            padding: 1rem 1.5rem;
+        }
+        
+        .result-content {
+            padding: 1.5rem;
+        }
+        
+        .result-image-container {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .result-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .diagnosis-panel {
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .diagnosis-result {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .diagnosis-icon {
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+        
+        .tumor-positive {
+            color: var(--danger);
+        }
+        
+        .tumor-negative {
+            color: var(--success);
+        }
+        
+        .confidence-bar {
+            height: 10px;
+            border-radius: 5px;
+            background-color: #e9ecef;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .confidence-level {
+            height: 100%;
+            border-radius: 5px;
+            background-color: var(--secondary);
+        }
+        
+        .explanation-toggle {
+            background-color: var(--light-bg);
+            border: none;
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            text-align: left;
+            transition: all 0.3s;
+        }
+        
+        .explanation-toggle:hover {
+            background-color: rgba(66, 133, 244, 0.1);
+        }
+        
+        .explanation-toggle:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.25);
+        }
+        
+        .explanation-content {
+            padding: 1rem 0;
+        }
+        
+        .explanation-image {
+            max-width: 100%;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .explanation-caption {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+        }
+        
+        .probability-item {
+            margin-bottom: 0.75rem;
+        }
+        
+        .progress {
+            height: 12px;
+            border-radius: 6px;
+        }
+        
+        .progress-bar {
+            text-align: right;
+            padding-right: 0.5rem;
+            font-size: 0.75rem;
+            line-height: 12px;
+        }
+        
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .loading-spinner {
+            text-align: center;
+        }
+        
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+        
+        .download-report-btn {
+            background-color: var(--dark-bg);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 4px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .download-report-btn:hover {
+            background-color: #23272b;
+            transform: translateY(-2px);
+        }
+        
+        .language-selector {
+            display: inline-block;
+        }
+        
+        @media (max-width: 768px) {
+            .result-image {
+                max-height: 300px;
+            }
+        }
+        
+        .key-feature-indicator {
+            display: inline-block;
+            font-size: 0.8rem;
+            background-color: rgba(66, 133, 244, 0.1);
+            color: var(--primary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .project-summary {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        /* Add these styles for the recommendations section */
+        .recommendation-list {
+            list-style-type: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        .recommendation-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .recommendation-list li:last-child {
+            border-bottom: none;
+        }
+
+        #recommendationSection .card {
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s ease;
+        }
+
+        #recommendationSection .card:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        #recommendationSection .card-header {
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        .btn-outline-primary {
+            transition: all 0.2s ease;
+        }
+
+        .btn-outline-primary:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <!-- App Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1><i class="fas fa-brain me-2"></i> MediExplain AI</h1>
+                    <p class="mb-0">AI-Assisted Brain Tumor Diagnosis with Transparent Explanations</p>
+                </div>
+                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                    <div class="language-selector">
+                        <div class="btn-group" role="group">
+                            <a href="{{ url_for('set_language', lang='en') }}" class="btn btn-sm {{ 'btn-light' if lang == 'en' else 'btn-outline-light' }}">English</a>
+                            <a href="{{ url_for('set_language', lang='zh') }}" class="btn btn-sm {{ 'btn-light' if lang == 'zh' else 'btn-outline-light' }}">中文</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="app-container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="project-summary">
+                    <h4 class="mb-3">Project Summary</h4>
+                    <p>MediExplain AI is an innovative tool that enhances medical diagnosis by combining advanced AI with explainable techniques. It analyzes brain MRI scans to classify tumors (Glioma, Meningioma, Pituitary) with transparent reasoning through SHAP visualizations. The user-friendly interface helps doctors understand AI decisions, building trust in AI-assisted medical diagnostics.</p>
+                </div>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> This tool analyzes brain MRI images to detect and classify tumors, providing transparent explanations for its predictions.
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Left Column - Upload Section -->
+            <div class="col-md-5">
+                <div class="upload-section">
+                    <h3 class="mb-3">Upload MRI Image</h3>
+                    <p class="text-muted mb-4">Upload a brain MRI scan image for analysis. Supported formats: JPG, JPEG, PNG.</p>
+                    
+                    <form id="upload-form" enctype="multipart/form-data">
+                        <div class="drop-zone" id="drop-zone">
+                            <span class="drop-zone-icon"><i class="fas fa-cloud-upload-alt"></i></span>
+                            <div class="drop-zone-prompt">Drag & Drop your MRI image here</div>
+                            <span class="drop-zone-prompt">or</span>
+                            <button type="button" class="btn btn-primary mt-2">Browse Files</button>
+                            <input type="file" name="file" class="drop-zone-input" id="formFile" accept=".jpg,.jpeg,.png" required>
+                        </div>
+                        
+                        <div class="form-check mt-3">
+                            <input class="form-check-input" type="checkbox" id="generateExplanation" checked>
+                            <label class="form-check-label" for="generateExplanation">
+                                Generate model explanations (improves interpretability)
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-lg btn-primary">
+                                <i class="fas fa-microscope me-2"></i> Analyze Image
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="card mt-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">About This Tool</h5>
+                    </div>
+                    <div class="card-body">
+                        <p>This AI-powered tool assists medical professionals in the detection and classification of brain tumors from MRI scans.</p>
+                        <p>The model can detect and classify:</p>
+                        <ul>
+                            <li><strong>Glioma</strong> - A type of tumor that originates in the glial cells of the brain</li>
+                            <li><strong>Meningioma</strong> - A tumor that forms on the membranes covering the brain and spinal cord</li>
+                            <li><strong>Pituitary Tumor</strong> - A growth that develops in the pituitary gland</li>
+                            <li><strong>No Tumor</strong> - Normal brain tissue without abnormal growth</li>
+                        </ul>
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i> This tool is designed to assist medical professionals and is not intended to replace clinical diagnosis.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Column - Results Section -->
+            <div class="col-md-7">
+                <div class="result-section" id="result-section">
+                    <div class="result-header">
+                        <h3 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Analysis Results</h3>
+                    </div>
+                    
+                    <div class="result-content">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="result-image-container">
+                                    <img id="uploaded-image" class="result-image" alt="Uploaded MRI Image">
+                                    <div class="text-muted mt-2 text-center">Uploaded MRI Image</div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="diagnosis-panel">
+                                    <div class="diagnosis-result">
+                                        <span id="diagnosis-icon" class="diagnosis-icon"></span>
+                                        <h4 id="result-heading" class="mb-0"></h4>
+                                    </div>
+                                    
+                                    <div class="mt-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>Confidence:</span>
+                                            <span id="confidence-value" class="fw-bold"></span>
+                                        </div>
+                                        <div class="confidence-bar">
+                                            <div id="confidence-level" class="confidence-level"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <h5 class="mb-3">Key Features Detected:</h5>
+                                        <div id="key-features">
+                                            <!-- Features will be populated here -->
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Probability Distribution:</h5>
+                                    <div id="probabilities-container">
+                                        <!-- Probabilities will be populated here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="explanation-section mt-4">
+                            <button class="explanation-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#standardExplanation">
+                                <span><i class="fas fa-map me-2"></i> Standard SHAP Visualization</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            
+                            <div class="collapse show" id="standardExplanation">
+                                <div class="explanation-content">
+                                    <div class="text-center">
+                                        <img id="standard-explanation-image" class="explanation-image" alt="Standard SHAP Explanation">
+                                        <p class="explanation-caption">
+                                            This visualization highlights regions that influenced the prediction. Red areas positively contribute to the detected class, while blue areas negatively contribute.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button class="explanation-toggle mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#deepExplanation">
+                                <span><i class="fas fa-project-diagram me-2"></i> Deep SHAP Visualization</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            
+                            <div class="collapse" id="deepExplanation">
+                                <div class="explanation-content">
+                                    <div class="text-center">
+                                        <img id="deep-explanation-image" class="explanation-image" alt="Deep SHAP Explanation">
+                                        <p class="explanation-caption">
+                                            Deep SHAP uses background samples to estimate feature importance through the neural network layers, providing a more detailed explanation.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recommendations section -->
+                        <button class="explanation-toggle mt-3" type="button" data-bs-toggle="collapse" data-bs-target="#recommendationSection">
+                            <span><i class="fas fa-clipboard-list me-2"></i> Recommendations</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+
+                        <div class="collapse" id="recommendationSection">
+                            <div class="explanation-content">
+                                <div class="card border-primary">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i> <span id="recommendation-title">Clinical Recommendations</span></h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="glioma-recommendations" style="display: none;">
+                                            <p><strong>Glioma Detected:</strong> Based on the AI analysis, features consistent with a glioma tumor have been identified.</p>
+                                            <ul class="recommendation-list">
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Recommend comprehensive neurological examination</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Consider contrast-enhanced MRI for better tumor characterization</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Surgical biopsy for histopathological confirmation</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Molecular testing for IDH mutation and 1p/19q co-deletion status</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Neurosurgical consultation for evaluation of resectability</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div id="meningioma-recommendations" style="display: none;">
+                                            <p><strong>Meningioma Detected:</strong> Based on the AI analysis, features consistent with a meningioma have been identified.</p>
+                                            <ul class="recommendation-list">
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Consider contrast-enhanced MRI to evaluate vascularity</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Evaluate for potential mass effect on surrounding structures</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> If symptomatic or large, neurosurgical consultation</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> For incidental findings, follow-up imaging in 6-12 months</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Monitor for any vision, hearing, or balance changes</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div id="pituitary-recommendations" style="display: none;">
+                                            <p><strong>Pituitary Tumor Detected:</strong> Based on the AI analysis, features consistent with a pituitary tumor have been identified.</p>
+                                            <ul class="recommendation-list">
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Complete hormonal evaluation (prolactin, growth hormone, ACTH, TSH)</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Dedicated pituitary MRI protocol with thin slices</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Visual field testing to assess for chiasmal compression</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Endocrinology consultation</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Neurosurgical evaluation if symptomatic or large</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div id="no-tumor-recommendations" style="display: none;">
+                                            <p><strong>No Tumor Detected:</strong> Based on the AI analysis, no significant tumor features were identified in this scan.</p>
+                                            <ul class="recommendation-list">
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Review clinical symptoms and correlate with findings</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Consider follow-up imaging if symptoms persist</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Evaluate for other potential causes of symptoms</li>
+                                                <li><i class="fas fa-angle-right text-primary me-2"></i> Standard radiological review to confirm AI findings</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <div class="alert alert-info mt-3">
+                                            <p class="mb-0"><i class="fas fa-info-circle me-2"></i> <strong>Note:</strong> These recommendations are generated based on the AI classification and are intended to assist medical professionals. Clinical judgment should always supersede these suggestions.</p>
+                                        </div>
+                                        
+                                        <div class="mt-4">
+                                            <h6 class="fw-bold"><i class="fas fa-laptop-medical me-2"></i> Technical Follow-up Options:</h6>
+                                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-share-alt me-1"></i> Share with Specialist</button>
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-database me-1"></i> Compare with Prior Scans</button>
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-chart-line me-1"></i> Run Advanced Analysis</button>
+                                                <button class="btn btn-sm btn-outline-primary"><i class="fas fa-calendar-alt me-1"></i> Schedule Follow-up</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+
+
+                        <div class="text-center mt-4">
+                            <button id="download-report-btn" class="download-report-btn">
+                                <i class="fas fa-file-pdf me-2"></i> Download Detailed Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="no-results-placeholder" class="text-center py-5">
+                    <img src="/api/placeholder/400/300" alt="MRI scan placeholder" class="img-fluid mb-4 opacity-25">
+                    <h4 class="text-muted">Upload an MRI image to see analysis results</h4>
+                    <p class="text-muted">Results and explanations will appear here after processing</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loading-spinner">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-3">Analyzing MRI image...</p>
+            <p class="text-muted small">This may take a few moments</p>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadForm = document.getElementById('upload-form');
+            const fileInput = document.getElementById('formFile');
+            const dropZone = document.getElementById('drop-zone');
+            const loadingOverlay = document.getElementById('loading-overlay');
+            const resultSection = document.getElementById('result-section');
+            const noResultsPlaceholder = document.getElementById('no-results-placeholder');
+            const uploadedImage = document.getElementById('uploaded-image');
+            const resultHeading = document.getElementById('result-heading');
+            const diagnosisIcon = document.getElementById('diagnosis-icon');
+            const confidenceValue = document.getElementById('confidence-value');
+            const confidenceLevel = document.getElementById('confidence-level');
+            const probabilitiesContainer = document.getElementById('probabilities-container');
+            const keyFeatures = document.getElementById('key-features');
+            const standardExplanationImg = document.getElementById('standard-explanation-image');
+            const deepExplanationImg = document.getElementById('deep-explanation-image');
+            const generateExplanation = document.getElementById('generateExplanation');
+            const downloadReportBtn = document.getElementById('download-report-btn');
+            
+            // Drop zone functionality
+            ['dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+            
+            dropZone.addEventListener('dragover', () => {
+                dropZone.classList.add('active');
+            });
+            
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('active');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                dropZone.classList.remove('active');
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length) {
+                    fileInput.files = files;
+                    updateDropzoneText(files[0].name);
+                }
+            });
+            
+            dropZone.addEventListener('click', () => {
+                fileInput.click();
+            });
+            
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length) {
+                    updateDropzoneText(fileInput.files[0].name);
+                }
+            });
+            
+            function updateDropzoneText(filename) {
+                const promptElement = dropZone.querySelector('.drop-zone-prompt');
+                promptElement.textContent = `Selected: ${filename}`;
+            }
+            
+            // Form submission
+            uploadForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (!fileInput.files[0]) {
+                    alert('Please select a file to upload');
+                    return;
+                }
+                
+                // Show loading overlay
+                loadingOverlay.style.display = 'flex';
+                
+                const formData = new FormData();
+                formData.append('file', fileInput.files[0]);
+                formData.append('generate_explanation', generateExplanation.checked);
+                
+                fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Hide loading overlay
+                    loadingOverlay.style.display = 'none';
+                    
+                    if (data.success) {
+                        // Hide placeholder, show results
+                        noResultsPlaceholder.style.display = 'none';
+                        resultSection.style.display = 'block';
+                        
+                        // Set uploaded image
+                        uploadedImage.src = `static/uploads/${data.filename}`;
+                        
+                        // Set result text
+                        const resultClass = data.result.predicted_class;
+                        const isTumor = resultClass !== 'No Tumor';
+                        
+                        resultHeading.textContent = resultClass;
+                        
+                        // Set diagnosis icon and color
+                        if (isTumor) {
+                            diagnosisIcon.innerHTML = '<i class="fas fa-exclamation-circle tumor-positive"></i>';
+                            resultHeading.className = 'mb-0 text-danger';
+                            confidenceLevel.className = 'confidence-level bg-danger';
+                        } else {
+                            diagnosisIcon.innerHTML = '<i class="fas fa-check-circle tumor-negative"></i>';
+                            resultHeading.className = 'mb-0 text-success';
+                            confidenceLevel.className = 'confidence-level bg-success';
+                        }
+                        
+                        // Set confidence
+                        const confidencePercent = data.result.confidence.toFixed(2);
+                        confidenceValue.textContent = `${confidencePercent}%`;
+                        confidenceLevel.style.width = `${confidencePercent}%`;
+                        
+                        // Generate key features (simulated for this demo)
+                        keyFeatures.innerHTML = '';
+                        if (resultClass === 'Glioma') {
+                            addKeyFeature('Irregular borders');
+                            addKeyFeature('Fluid accumulation');
+                            addKeyFeature('Mid-brain region');
+                        } else if (resultClass === 'Meningioma') {
+                            addKeyFeature('Well-defined margins');
+                            addKeyFeature('Brain surface location');
+                            addKeyFeature('Homogeneous structure');
+                        } else if (resultClass === 'Pituitary') {
+                            addKeyFeature('Small size');
+                            addKeyFeature('Base of brain');
+                            addKeyFeature('Sellar region');
+                        } else {
+                            addKeyFeature('Normal tissue patterns');
+                            addKeyFeature('Regular symmetry');
+                            addKeyFeature('Clear ventricles');
+                        }
+                        
+                        // Set probabilities
+                        probabilitiesContainer.innerHTML = '';
+                        Object.entries(data.result.probabilities).forEach(([className, probability]) => {
+                            const progressDiv = document.createElement('div');
+                            progressDiv.className = 'probability-item';
+                            
+                            const label = document.createElement('div');
+                            label.className = 'd-flex justify-content-between';
+                            
+                            const nameSpan = document.createElement('span');
+                            nameSpan.textContent = className;
+                            
+                            const valueSpan = document.createElement('span');
+                            valueSpan.textContent = `${probability.toFixed(2)}%`;
+                            
+                            label.appendChild(nameSpan);
+                            label.appendChild(valueSpan);
+                            
+                            const progress = document.createElement('div');
+                            progress.className = 'progress';
+                            
+                            const progressBar = document.createElement('div');
+                            if (className === 'No Tumor') {
+                                progressBar.className = 'progress-bar bg-success';
+                            } else {
+                                progressBar.className = 'progress-bar bg-danger';
+                            }
+                            progressBar.style.width = `${probability}%`;
+                            
+                            progress.appendChild(progressBar);
+                            progressDiv.appendChild(label);
+                            progressDiv.appendChild(progress);
+                            probabilitiesContainer.appendChild(progressDiv);
+                        });
+
+                        // Handle recommendations based on classification result
+                        const recommendationSection = document.getElementById('recommendationSection');
+                        const gliomaRecs = document.getElementById('glioma-recommendations');
+                        const meningiomaRecs = document.getElementById('meningioma-recommendations');
+                        const pituitaryRecs = document.getElementById('pituitary-recommendations');
+                        const noTumorRecs = document.getElementById('no-tumor-recommendations');
+
+                        // Hide all recommendation sections first
+                        gliomaRecs.style.display = 'none';
+                        meningiomaRecs.style.display = 'none';
+                        pituitaryRecs.style.display = 'none';
+                        noTumorRecs.style.display = 'none';
+
+                        // Show relevant recommendation based on classification
+                        if (resultClass === 'Glioma') {
+                            gliomaRecs.style.display = 'block';
+                        } else if (resultClass === 'Meningioma') {
+                            meningiomaRecs.style.display = 'block';
+                        } else if (resultClass === 'Pituitary') {
+                            pituitaryRecs.style.display = 'block';
+                        } else {
+                            noTumorRecs.style.display = 'block';
+                        }
+
+                        // Update the recommendation title with confidence
+                        const recommendationTitle = document.getElementById('recommendation-title');
+                        recommendationTitle.textContent = `Clinical Recommendations (${confidencePercent}% confidence)`;
+                        
+                        // Handle explanations
+                        const explanationSection = document.querySelector('.explanation-section');
+                        explanationSection.style.display = 'none';
+                        
+                        if (data.standard_explanation || data.deep_explanation) {
+                            explanationSection.style.display = 'block';
+                            
+                            document.getElementById('standardExplanation').style.display = 'none';
+                            document.getElementById('deepExplanation').style.display = 'none';
+                            
+                            if (data.standard_explanation) {
+                                standardExplanationImg.src = `explanations/${data.standard_explanation}`;
+                                document.getElementById('standardExplanation').style.display = 'block';
+                            }
+                            
+                            if (data.deep_explanation) {
+                                deepExplanationImg.src = `explanations/${data.deep_explanation}`;
+                                document.getElementById('deepExplanation').style.display = 'block';
+                            }
+                        }
+                    } else {
+                        alert(`Error: ${data.error}`);
+                    }
+                })
+                .catch(error => {
+                    loadingOverlay.style.display = 'none';
+                    alert('An error occurred during processing: ' + error);
+                });
+            });
+            
+            function addKeyFeature(text) {
+                const span = document.createElement('span');
+                span.className = 'key-feature-indicator';
+                span.innerHTML = `<i class="fas fa-check-circle me-1"></i> ${text}`;
+                keyFeatures.appendChild(span);
+            }
+
+            // Download report button (simplified for demo)
+            downloadReportBtn.addEventListener('click', function() {
+            // Show a loading message
+            const originalButtonText = downloadReportBtn.innerHTML;
+            downloadReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Generating PDF...';
+            downloadReportBtn.disabled = true;
+            
+            // Get the current date for the report
+            const currentDate = new Date();
+            const dateString = currentDate.toLocaleDateString();
+            const timeString = currentDate.toLocaleTimeString();
+            
+            // Create a copy of the result section to modify for PDF
+            const resultContent = document.querySelector('.result-content').cloneNode(true);
+            
+            // Create a container for the PDF content
+            const pdfContainer = document.createElement('div');
+            pdfContainer.style.width = '750px';
+            pdfContainer.style.padding = '20px';
+            pdfContainer.style.backgroundColor = 'white';
+            pdfContainer.style.position = 'absolute';
+            pdfContainer.style.left = '-9999px';
+            
+            // Add header with logo and title
+            const header = document.createElement('div');
+            header.innerHTML = `
+                <div style="display: flex; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #3367d6; padding-bottom: 10px;">
+                    <div style="font-size: 24px; color: #3367d6; margin-right: 10px;">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div>
+                        <h2 style="margin: 0; color: #3367d6;">MediExplain AI - Analysis Report</h2>
+                        <p style="margin: 0; color: #666;">Generated on ${dateString} at ${timeString}</p>
+                    </div>
+                </div>
+            `;
+            pdfContainer.appendChild(header);
+            
+            // Get patient/image information
+            const imageInfo = document.createElement('div');
+            imageInfo.style.marginBottom = '20px';
+            
+            // Get prediction result
+            const resultClass = resultHeading.textContent;
+            const confidence = confidenceValue.textContent;
+            
+            imageInfo.innerHTML = `
+                <h3>Analysis Summary</h3>
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd; width: 30%;"><strong>Diagnosis:</strong></td>
+                        <td style="padding: 8px; border: 1px solid #ddd; color: ${resultClass !== 'No Tumor' ? '#db4437' : '#0f9d58'};">
+                            <strong>${resultClass}</strong>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Confidence:</strong></td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${confidence}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;"><strong>Analysis Date:</strong></td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">${dateString}</td>
+                    </tr>
+                </table>
+            `;
+            pdfContainer.appendChild(imageInfo);
+
+            // Add MRI image section
+            const imageSection = document.createElement('div');
+            imageSection.style.marginBottom = '20px';
+            imageSection.innerHTML = `
+                <h3>MRI Image</h3>
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <img src="${uploadedImage.src}" style="max-height: 250px; border: 1px solid #ddd; padding: 5px;">
+                </div>
+            `;
+            pdfContainer.appendChild(imageSection);
+            
+            // Add probability section
+            const probabilitySection = document.createElement('div');
+            probabilitySection.style.marginBottom = '20px';
+            probabilitySection.innerHTML = '<h3>Probability Distribution</h3>';
+            
+            // Create a table for probabilities instead of progress bars
+            const probabilityTable = document.createElement('table');
+            probabilityTable.style.width = '100%';
+            probabilityTable.style.borderCollapse = 'collapse';
+            probabilityTable.style.marginBottom = '15px';
+            
+            // Add table header
+            probabilityTable.innerHTML = `
+                <tr>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Classification</th>
+                    <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Probability</th>
+                </tr>
+            `;
+            
+            // Add each probability as a row
+            document.querySelectorAll('.probability-item').forEach(item => {
+                const className = item.querySelector('.justify-content-between span:first-child').textContent;
+                const probability = item.querySelector('.justify-content-between span:last-child').textContent;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid #ddd;">${className}</td>
+                    <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">${probability}</td>
+                `;
+                probabilityTable.appendChild(row);
+            });
+            
+            probabilitySection.appendChild(probabilityTable);
+            pdfContainer.appendChild(probabilitySection);
+            
+            // Add key features section
+            const featuresSection = document.createElement('div');
+            featuresSection.style.marginBottom = '20px';
+            featuresSection.innerHTML = '<h3>Key Features Detected</h3><ul>';
+            
+            document.querySelectorAll('.key-feature-indicator').forEach(feature => {
+                // Extract just the text content, removing the icon
+                const featureText = feature.textContent.replace(/^\s*✓\s*/, '').trim();
+                featuresSection.innerHTML += `<li>${featureText}</li>`;
+            });
+            
+            featuresSection.innerHTML += '</ul>';
+            pdfContainer.appendChild(featuresSection);
+            
+            // Add explanation images if available
+            if (standardExplanationImg.src && !standardExplanationImg.src.includes('missing.png')) {
+                const explanationSection = document.createElement('div');
+                explanationSection.style.marginBottom = '20px';
+                explanationSection.innerHTML = `
+                    <h3>Explainability Visualization</h3>
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <img src="${standardExplanationImg.src}" style="max-width: 100%; max-height: 250px; border: 1px solid #ddd; padding: 5px;">
+                        <p style="font-size: 12px; color: #666; margin-top: 5px;">
+                            SHAP visualization showing regions that influenced the prediction. 
+                            Red areas positively contribute to the detected class, while blue areas negatively contribute.
+                        </p>
+                    </div>
+                `;
+                pdfContainer.appendChild(explanationSection);
+            }
+            
+            // Add disclaimer
+            const disclaimer = document.createElement('div');
+            disclaimer.style.marginTop = '30px';
+            disclaimer.style.padding = '10px';
+            disclaimer.style.border = '1px solid #f8d7da';
+            disclaimer.style.backgroundColor = '#fff3f3';
+            disclaimer.style.borderRadius = '4px';
+            disclaimer.innerHTML = `
+                <p style="margin: 0; font-size: 12px; color: #721c24;">
+                    <strong>DISCLAIMER:</strong> This report is generated by an AI tool designed to assist medical professionals.
+                    The analysis provided should not be used as the sole basis for diagnosis or treatment decisions.
+                    Always consult with a qualified healthcare provider for proper diagnosis and treatment.
+                </p>
+            `;
+            pdfContainer.appendChild(disclaimer);
+            
+            // Add the container to the document temporarily
+            document.body.appendChild(pdfContainer);
+            
+            // Generate PDF with html2canvas and jsPDF
+            setTimeout(() => {
+                const { jsPDF } = window.jspdf;
+                
+                html2canvas(pdfContainer, {
+                    scale: 1,
+                    useCORS: true,
+                    logging: false
+                }).then(canvas => {
+                    // Create PDF
+                    const pdf = new jsPDF('p', 'pt', 'a4');
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = 595.28;
+                    const pageHeight = 841.89;
+                    const imgHeight = canvas.height * imgWidth / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                    
+                    // Add additional pages if needed for longer reports
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+                    
+                    // Save PDF
+                    pdf.save(`brain-tumor-analysis-${dateString.replace(/\//g, '-')}.pdf`);
+                    
+                    // Clean up
+                    document.body.removeChild(pdfContainer);
+                    downloadReportBtn.innerHTML = originalButtonText;
+                    downloadReportBtn.disabled = false;
+                });
+            }, 500);
+        });
+        });
+    </script>
+</body>
+</html>

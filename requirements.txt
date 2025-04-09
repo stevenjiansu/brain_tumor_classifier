@@ -1,0 +1,8 @@
+Flask
+tensorflow
+shap
+opencv-python
+numpy
+matplotlib
+gunicorn
+werkzeug
