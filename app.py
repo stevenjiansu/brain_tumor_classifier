@@ -234,154 +234,138 @@ def generate_standard_shap_explanation(image_path, predicted_class_index):
         traceback.print_exc()
         return None
 
-def generate_deep_shap_explanation(image_path, predicted_class_index):
-    """Generate DeepExplainer SHAP visualization"""
-    if not model_loaded:
-        return None
+# def generate_deep_shap_explanation(image_path, predicted_class_index):
+#     """Generate DeepExplainer SHAP visualization"""
+#     if not model_loaded:
+#         return None
     
-    try:
-        # Preprocess image
-        processed_img, _ = preprocess_image(image_path)
+#     try:
+#         # Preprocess image
+#         processed_img, _ = preprocess_image(image_path)
         
-        if processed_img is None:
-            return None
+#         if processed_img is None:
+#             return None
         
-        # Generate unique filename
-        filename = os.path.basename(image_path)
-        explanation_filename = f"deep_explanation_{filename}"
-        explanation_path = os.path.join(app.config['EXPLANATION_FOLDER'], explanation_filename)
+#         # Generate unique filename
+#         filename = os.path.basename(image_path)
+#         explanation_filename = f"deep_explanation_{filename}"
+#         explanation_path = os.path.join(app.config['EXPLANATION_FOLDER'], explanation_filename)
         
-        # Get class names
-        class_labels = list(CLASS_MAPPINGS.values())
+#         # Get class names
+#         class_labels = list(CLASS_MAPPINGS.values())
         
-        # Set matplotlib to not use GUI
-        plt.ioff()  # Turn off interactive mode
+#         # Set matplotlib to not use GUI
+#         plt.ioff()  # Turn off interactive mode
         
-        # Create figure
-        plt.figure(figsize=(14, 12))
+#         # Create figure
+#         plt.figure(figsize=(14, 12))
         
-        # Add title
-        plt.suptitle(f"DeepExplainer SHAP Visualization - Predicted Class: {class_labels[predicted_class_index]}", 
-                    fontsize=16, fontweight='bold')
+#         # Add title
+#         plt.suptitle(f"DeepExplainer SHAP Visualization - Predicted Class: {class_labels[predicted_class_index]}", 
+#                     fontsize=16, fontweight='bold')
         
-        # Get background data
-        SEED = 1234
-        data_dir = 'brain_tumor_data'
+#         # Get background data
+#         SEED = 1234
+#         data_dir = 'brain_tumor_data'
         
-        # def get_data_labels(directory, shuffle=True, random_state=SEED):
-        #     from sklearn.utils import shuffle
-        #     data_path = [] 
-        #     data_index = []
-        #     label_dict = {label: index for index, label in enumerate(sorted(os.listdir(directory)))}
+
+#         def get_data_labels(directory, shuffle_data=True, random_state=SEED):
+#             from sklearn.utils import shuffle
+#             data_path = [] 
+#             data_index = []
+
+#             # Only include label directories (ignore files like .DS_Store)
+#             label_names = [label for label in sorted(os.listdir(directory)) if os.path.isdir(os.path.join(directory, label))]
+#             label_dict = {label: index for index, label in enumerate(label_names)}
             
-        #     for label, index in label_dict.items():
-        #         label_dir = os.path.join(directory, label)
-        #         for image in os.listdir(label_dir):
-        #             image_path = os.path.join(label_dir, image) 
-        #             data_path.append(image_path) 
-        #             data_index.append(index) 
+#             for label, index in label_dict.items():
+#                 label_dir = os.path.join(directory, label)
+
+#                 for image in os.listdir(label_dir):
+#                     image_path = os.path.join(label_dir, image)
+#                     # Skip hidden files and non-image files
+#                     if image.startswith('.') or not image.lower().endswith(('.png', '.jpg', '.jpeg')):
+#                         continue
+#                     data_path.append(image_path)
+#                     data_index.append(index)
+
+#             if shuffle_data:
+#                 data_path, data_index = shuffle(data_path, data_index, random_state=random_state)
+
+#             return data_path, data_index
             
-        #     if shuffle:
-        #         data_path, data_index = shuffle(data_path, data_index, random_state=random_state)
-            
-        #     return data_path, data_index 
-        def get_data_labels(directory, shuffle_data=True, random_state=SEED):
-            from sklearn.utils import shuffle
-            data_path = [] 
-            data_index = []
+#         def parse_function(filename, label, image_size, n_channels):
+#             image_string = tf.io.read_file(filename)
+#             image = tf.image.decode_jpeg(image_string, n_channels)
+#             image = tf.image.resize(image, image_size)
+#             return image, label
 
-            # Only include label directories (ignore files like .DS_Store)
-            label_names = [label for label in sorted(os.listdir(directory)) if os.path.isdir(os.path.join(directory, label))]
-            label_dict = {label: index for index, label in enumerate(label_names)}
-            
-            for label, index in label_dict.items():
-                label_dir = os.path.join(directory, label)
+#         def get_dataset(paths, labels, image_size, n_channels=1, num_classes=4, batch_size=32):
+#             path_ds = tf.data.Dataset.from_tensor_slices((paths, labels))
+#             image_label_ds = path_ds.map(lambda path, label: parse_function(path, label, image_size, n_channels), 
+#                                         num_parallel_calls=tf.data.AUTOTUNE)
+#             return image_label_ds.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
 
-                for image in os.listdir(label_dir):
-                    image_path = os.path.join(label_dir, image)
-                    # Skip hidden files and non-image files
-                    if image.startswith('.') or not image.lower().endswith(('.png', '.jpg', '.jpeg')):
-                        continue
-                    data_path.append(image_path)
-                    data_index.append(index)
+#         USER_PATH = os.path.join(os.getcwd(), data_dir)
+#         train_paths, train_index = get_data_labels(USER_PATH + '/Training', random_state=SEED)
 
-            if shuffle_data:
-                data_path, data_index = shuffle(data_path, data_index, random_state=random_state)
+#         batch_size = 32
+#         image_dim = (168, 168)
+#         train_ds = get_dataset(train_paths, train_index, image_dim, n_channels=1, num_classes=4, batch_size=batch_size)
 
-            return data_path, data_index
-            
-        def parse_function(filename, label, image_size, n_channels):
-            image_string = tf.io.read_file(filename)
-            image = tf.image.decode_jpeg(image_string, n_channels)
-            image = tf.image.resize(image, image_size)
-            return image, label
-
-        def get_dataset(paths, labels, image_size, n_channels=1, num_classes=4, batch_size=32):
-            path_ds = tf.data.Dataset.from_tensor_slices((paths, labels))
-            image_label_ds = path_ds.map(lambda path, label: parse_function(path, label, image_size, n_channels), 
-                                        num_parallel_calls=tf.data.AUTOTUNE)
-            return image_label_ds.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-
-        USER_PATH = os.path.join(os.getcwd(), data_dir)
-        train_paths, train_index = get_data_labels(USER_PATH + '/Training', random_state=SEED)
-
-        batch_size = 32
-        image_dim = (168, 168)
-        train_ds = get_dataset(train_paths, train_index, image_dim, n_channels=1, num_classes=4, batch_size=batch_size)
-
-        from tensorflow.keras.models import Sequential
-        from tensorflow.keras.layers import RandomRotation, RandomContrast, RandomZoom, RandomFlip, RandomTranslation
+#         from tensorflow.keras.models import Sequential
+#         from tensorflow.keras.layers import RandomRotation, RandomContrast, RandomZoom, RandomFlip, RandomTranslation
         
-        data_augmentation = Sequential([
-            RandomFlip("horizontal"),
-            RandomRotation(0.02, fill_mode='constant'),
-            RandomContrast(0.1),
-            RandomZoom(height_factor=0.01, width_factor=0.05),
-            RandomTranslation(height_factor=0.0015, width_factor=0.0015, fill_mode='constant'),
-        ])
+#         data_augmentation = Sequential([
+#             RandomFlip("horizontal"),
+#             RandomRotation(0.02, fill_mode='constant'),
+#             RandomContrast(0.1),
+#             RandomZoom(height_factor=0.01, width_factor=0.05),
+#             RandomTranslation(height_factor=0.0015, width_factor=0.0015, fill_mode='constant'),
+#         ])
 
-        def preprocess_train(image, label):
-            image = data_augmentation(image) / 255.0
-            return image, label
+#         def preprocess_train(image, label):
+#             image = data_augmentation(image) / 255.0
+#             return image, label
 
-        train_ds_preprocessed = train_ds.map(preprocess_train, num_parallel_calls=tf.data.AUTOTUNE)
+#         train_ds_preprocessed = train_ds.map(preprocess_train, num_parallel_calls=tf.data.AUTOTUNE)
 
-        try:
-            # Use a subset of training data as background
-            x_train_mstar = np.concatenate([x.numpy() for x, _ in train_ds_preprocessed])
-            background = x_train_mstar[np.random.choice(x_train_mstar.shape[0], 100, replace=False)]
-            deep_explainer = shap.DeepExplainer(model, background)
-            deep_shap_values = deep_explainer.shap_values(processed_img)
+#         try:
+#             # Use a subset of training data as background
+#             x_train_mstar = np.concatenate([x.numpy() for x, _ in train_ds_preprocessed])
+#             background = x_train_mstar[np.random.choice(x_train_mstar.shape[0], 100, replace=False)]
+#             deep_explainer = shap.DeepExplainer(model, background)
+#             deep_shap_values = deep_explainer.shap_values(processed_img)
             
-            # Reshape the shap_values
-            reshaped_shap_values = []
-            for i in range(4):  # For each class
-                reshaped_shap_values.append(deep_shap_values[0][:,:,:,i])
+#             # Reshape the shap_values
+#             reshaped_shap_values = []
+#             for i in range(4):  # For each class
+#                 reshaped_shap_values.append(deep_shap_values[0][:,:,:,i])
 
-            shap.image_plot(reshaped_shap_values, processed_img[0], class_labels)
+#             shap.image_plot(reshaped_shap_values, processed_img[0], class_labels)
 
-            # Add explanation text
-            plt.figtext(0.5, 0.01, 
-                      "Red areas positively contribute to the class. Blue areas negatively contribute.",
-                      ha="center", fontsize=10, bbox={"facecolor":"white", "alpha":0.5, "pad":5})
+#             # Add explanation text
+#             plt.figtext(0.5, 0.01, 
+#                       "Red areas positively contribute to the class. Blue areas negatively contribute.",
+#                       ha="center", fontsize=10, bbox={"facecolor":"white", "alpha":0.5, "pad":5})
             
-            # Save figure
-            plt.savefig(explanation_path, bbox_inches='tight', dpi=100)
-            plt.close()
+#             # Save figure
+#             plt.savefig(explanation_path, bbox_inches='tight', dpi=100)
+#             plt.close()
             
-            return explanation_filename
+#             return explanation_filename
 
-        except Exception as e:
-            print(f"DeepExplainer visualization failed: {e}")
-            import traceback
-            traceback.print_exc()
-            return None
+#         except Exception as e:
+#             print(f"DeepExplainer visualization failed: {e}")
+#             import traceback
+#             traceback.print_exc()
+#             return None
             
-    except Exception as e:
-        print(f"Error generating DeepExplainer explanation: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
+#     except Exception as e:
+#         print(f"Error generating DeepExplainer explanation: {e}")
+#         import traceback
+#         traceback.print_exc()
+#         return None
 
 @app.route('/')
 def home():
