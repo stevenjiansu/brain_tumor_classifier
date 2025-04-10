@@ -473,6 +473,8 @@ def handle_exception(e):
     }), 500
 
 if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))  # 10000 is default fallback
+    app.run(host="0.0.0.0", port=port)
     # Initialize explainer in background
     # Note: We'll initialize the explainer on demand instead of at startup
-    app.run(debug=False)  # Set debug to False to avoid issues with multiple threads
+    #app.run(debug=False)  # Set debug to False to avoid issues with multiple threads
