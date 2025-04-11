@@ -1,0 +1,7 @@
+__pycache__/
+static/uploads/*
+static/explanations/*
+.env
+.venv
+env/
+venv/
