@@ -421,10 +421,10 @@ def upload_file():
                     result['predicted_class_index']
                 )
                 
-                deep_explanation = generate_deep_shap_explanation(
-                    filepath, 
-                    result['predicted_class_index']
-                )
+                # deep_explanation = generate_deep_shap_explanation(
+                #     filepath, 
+                #     result['predicted_class_index']
+                # )
             
             return jsonify({
                 'success': True,
