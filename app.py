@@ -10,6 +10,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from io import BytesIO
+import pickle
 
 # Configuration
 UPLOAD_FOLDER = 'static/uploads'
@@ -208,7 +209,7 @@ def generate_standard_shap_explanation(image_path, predicted_class_index):
                     fontsize=16, fontweight='bold')
         
         # Generate SHAP values
-        shap_values = explainer(processed_img, max_evals=5000, batch_size=50)
+        shap_values = explainer(processed_img, max_evals=1000, batch_size=50)
 
         # Create explanation plot
         shap.image_plot(
@@ -234,8 +235,14 @@ def generate_standard_shap_explanation(image_path, predicted_class_index):
         traceback.print_exc()
         return None
 
+
+
+BACKGROUND_DATA_FILE = 'static/background_data.pkl'
+
 def generate_deep_shap_explanation(image_path, predicted_class_index):
     """Generate DeepExplainer SHAP visualization"""
+    global background_data
+    
     if not model_loaded:
         return None
     
@@ -264,77 +271,9 @@ def generate_deep_shap_explanation(image_path, predicted_class_index):
         plt.suptitle(f"DeepExplainer SHAP Visualization - Predicted Class: {class_labels[predicted_class_index]}", 
                     fontsize=16, fontweight='bold')
         
-        # Get background data
-        SEED = 1234
-        data_dir = 'brain_tumor_data'
-        
-
-        def get_data_labels(directory, shuffle_data=True, random_state=SEED):
-            from sklearn.utils import shuffle
-            data_path = [] 
-            data_index = []
-
-            # Only include label directories (ignore files like .DS_Store)
-            label_names = [label for label in sorted(os.listdir(directory)) if os.path.isdir(os.path.join(directory, label))]
-            label_dict = {label: index for index, label in enumerate(label_names)}
-            
-            for label, index in label_dict.items():
-                label_dir = os.path.join(directory, label)
-
-                for image in os.listdir(label_dir):
-                    image_path = os.path.join(label_dir, image)
-                    # Skip hidden files and non-image files
-                    if image.startswith('.') or not image.lower().endswith(('.png', '.jpg', '.jpeg')):
-                        continue
-                    data_path.append(image_path)
-                    data_index.append(index)
-
-            if shuffle_data:
-                data_path, data_index = shuffle(data_path, data_index, random_state=random_state)
-
-            return data_path, data_index
-            
-        def parse_function(filename, label, image_size, n_channels):
-            image_string = tf.io.read_file(filename)
-            image = tf.image.decode_jpeg(image_string, n_channels)
-            image = tf.image.resize(image, image_size)
-            return image, label
-
-        def get_dataset(paths, labels, image_size, n_channels=1, num_classes=4, batch_size=32):
-            path_ds = tf.data.Dataset.from_tensor_slices((paths, labels))
-            image_label_ds = path_ds.map(lambda path, label: parse_function(path, label, image_size, n_channels), 
-                                        num_parallel_calls=tf.data.AUTOTUNE)
-            return image_label_ds.batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
-
-        USER_PATH = os.path.join(os.getcwd(), data_dir)
-        train_paths, train_index = get_data_labels(USER_PATH + '/Training', random_state=SEED)
-
-        batch_size = 32
-        image_dim = (168, 168)
-        train_ds = get_dataset(train_paths, train_index, image_dim, n_channels=1, num_classes=4, batch_size=batch_size)
-
-        from tensorflow.keras.models import Sequential
-        from tensorflow.keras.layers import RandomRotation, RandomContrast, RandomZoom, RandomFlip, RandomTranslation
-        
-        data_augmentation = Sequential([
-            RandomFlip("horizontal"),
-            RandomRotation(0.02, fill_mode='constant'),
-            RandomContrast(0.1),
-            RandomZoom(height_factor=0.01, width_factor=0.05),
-            RandomTranslation(height_factor=0.0015, width_factor=0.0015, fill_mode='constant'),
-        ])
-
-        def preprocess_train(image, label):
-            image = data_augmentation(image) / 255.0
-            return image, label
-
-        train_ds_preprocessed = train_ds.map(preprocess_train, num_parallel_calls=tf.data.AUTOTUNE)
-
         try:
-            # Use a subset of training data as background
-            x_train_mstar = np.concatenate([x.numpy() for x, _ in train_ds_preprocessed])
-            background = x_train_mstar[np.random.choice(x_train_mstar.shape[0], 100, replace=False)]
-            deep_explainer = shap.DeepExplainer(model, background)
+            # Create the deep explainer with the background data
+            deep_explainer = shap.DeepExplainer(model, background_data)
             deep_shap_values = deep_explainer.shap_values(processed_img)
             
             # Reshape the shap_values
@@ -366,6 +305,25 @@ def generate_deep_shap_explanation(image_path, predicted_class_index):
         import traceback
         traceback.print_exc()
         return None
+    
+def load_background_data():
+    """Load background data for SHAP explanations on app startup"""
+    global background_data
+    
+    if os.path.exists(BACKGROUND_DATA_FILE):
+        print("Loading background data from disk...")
+        try:
+            with open(BACKGROUND_DATA_FILE, 'rb') as f:
+                background_data = pickle.load(f)
+            print("Background data loaded successfully.")
+            return True
+        except Exception as e:
+            print(f"Failed to load background data: {e}")
+            background_data = None
+    return False
+
+
+
 
 @app.route('/')
 def home():
@@ -457,6 +415,7 @@ def handle_exception(e):
     }), 500
 
 if __name__ == '__main__':
+    load_background_data()
     port = int(os.environ.get("PORT", 8000)) # Default to 8000 if not set
     app.run(host="0.0.0.0", port=port)
     # Initialize explainer in background
