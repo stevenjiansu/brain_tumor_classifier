@@ -78,7 +78,4 @@ jobs:
         with:
           app-name: 'mediexplainai'
           slot-name: 'Production'
-          package: '.'
-          retry-times: 3  # Add retry mechanism
-          retry-interval: 10000  # Milliseconds between retries
           
