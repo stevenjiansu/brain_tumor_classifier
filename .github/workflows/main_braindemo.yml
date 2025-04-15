@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: Build and deploy Python app to Azure Web App - mediexplainai
+name: Build and deploy Python app to Azure Web App - braindemo
 
 on:
   push:
@@ -68,14 +68,14 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8B07EA05EF9046B0A88256BDA6B5ED5A }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_D68F5D7953254B3C9AF7098D5DF0D7FB }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F997F5A9179C40C7B2DBFD2C5B9247D1 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_FFD344B5F04C4D4598594B06092FAF90 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_836A7546AC5C447D843395772EF01E0D }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_587D42FAFFE341F7A6DE22B79B43B746 }}
 
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'mediexplainai'
+          app-name: 'braindemo'
           slot-name: 'Production'
           
