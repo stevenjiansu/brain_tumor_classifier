@@ -56,7 +56,7 @@ CLASS_MAPPINGS = {
 }
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'your_secret_key'
+# app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['EXPLANATION_FOLDER'] = EXPLANATION_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -68,7 +68,7 @@ os.makedirs(EXPLANATION_FOLDER, exist_ok=True)
 # this is to download the model from azure blob storage
 def download_model_from_azure():
     try:
-        connection_string = os.environ.get("DefaultEndpointsProtocol=https;AccountName=stevensusa;AccountKey=fv4KbncTLT8/RG+CiIx9nhw++OnZkfqUMoKMXmjQ6TEkIxUGPRcN0HzAOhznRZ0V6eZydYsKCN7d+AStnlWOyg==;EndpointSuffix=core.windows.net")
+        connection_string = os.environ.get("DefaultEndpointsProtocol=https;AccountName=braindemo;AccountKey=PrgnZx6jvrwkL8kIlAgI+T04Fump9DkKkGBbnBOnX5HEVmw+mI82uv2vvFBB29RF8a/UOpDBUynf+AStqCYoLw==;EndpointSuffix=core.windows.net")
         container_name = "models"
         blob_name = "model.keras"
         local_path = "model.keras"
