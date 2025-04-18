@@ -16,4 +16,3 @@ static/uploads/*
 static/explanations/*
 !static/uploads/.gitkeep
 !static/explanations/.gitkeep
-model.keras
