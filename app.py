@@ -10,12 +10,6 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import pickle
-# Add for azure deployment
-import logging
-from logging.handlers import RotatingFileHandler
-import sys
-from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
-
 
 # Configuration
 UPLOAD_FOLDER = 'static/uploads'
@@ -56,7 +50,7 @@ CLASS_MAPPINGS = {
 }
 
 app = Flask(__name__)
-# app.config['SECRET_KEY'] = 'your_secret_key'
+app.config['SECRET_KEY'] = 'your_secret_key'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 app.config['EXPLANATION_FOLDER'] = EXPLANATION_FOLDER
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -65,55 +59,14 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 os.makedirs(EXPLANATION_FOLDER, exist_ok=True)
 
-# this is to download the model from azure blob storage
-def download_model_from_azure():
-    try:
-        connection_string = os.environ.get("DefaultEndpointsProtocol=https;AccountName=braindemo;AccountKey=PrgnZx6jvrwkL8kIlAgI+T04Fump9DkKkGBbnBOnX5HEVmw+mI82uv2vvFBB29RF8a/UOpDBUynf+AStqCYoLw==;EndpointSuffix=core.windows.net")
-        container_name = "models"
-        blob_name = "model.keras"
-        local_path = "model.keras"
-        
-        if os.path.exists(local_path):
-            app.logger.info("Model already exists locally, skipping download")
-            return True
-            
-        if not connection_string:
-            app.logger.error("No Azure storage connection string found")
-            return False
-            
-        blob_service_client = BlobServiceClient.from_connection_string(connection_string)
-        container_client = blob_service_client.get_container_client(container_name)
-        blob_client = container_client.get_blob_client(blob_name)
-        
-        app.logger.info(f"Downloading model from Azure Storage...")
-        with open(local_path, "wb") as download_file:
-            download_file.write(blob_client.download_blob().readall())
-        app.logger.info(f"Model downloaded successfully")
-        return True
-    except Exception as e:
-        app.logger.error(f"Error downloading model: {str(e)}")
-        return False
-
 # Load trained model
-# try:
-#     model = load_model('model.keras')
-#     model_loaded = True
-# except Exception as e:
-#     print(f"Error loading model: {e}")
-#     model = None
-#     model_loaded = False
 try:
-    if download_model_from_azure():
-        model = load_model('model.keras')
-        model_loaded = True
-    else:
-        model = None
-        model_loaded = False
+    model = load_model('model.keras')
+    model_loaded = True
 except Exception as e:
-    app.logger.error(f"Error loading model: {str(e)}")
+    print(f"Error loading model: {e}")
     model = None
     model_loaded = False
-
 
 # Initialize SHAP explainer
 explainer = None
@@ -283,89 +236,89 @@ def generate_standard_shap_explanation(image_path, predicted_class_index):
 
 
 
-# BACKGROUND_DATA_FILE = 'static/background_data.pkl'
-# def generate_deep_shap_explanation(image_path, predicted_class_index):
-#     """Generate DeepExplainer SHAP visualization"""
-#     global background_data
+BACKGROUND_DATA_FILE = 'static/background_data.pkl'
+def generate_deep_shap_explanation(image_path, predicted_class_index):
+    """Generate DeepExplainer SHAP visualization"""
+    global background_data
     
-#     if not model_loaded:
-#         return None
+    if not model_loaded:
+        return None
     
-#     try:
-#         # Preprocess image
-#         processed_img, _ = preprocess_image(image_path)
+    try:
+        # Preprocess image
+        processed_img, _ = preprocess_image(image_path)
         
-#         if processed_img is None:
-#             return None
+        if processed_img is None:
+            return None
         
-#         # Generate unique filename
-#         filename = os.path.basename(image_path)
-#         explanation_filename = f"deep_explanation_{filename}"
-#         explanation_path = os.path.join(app.config['EXPLANATION_FOLDER'], explanation_filename)
+        # Generate unique filename
+        filename = os.path.basename(image_path)
+        explanation_filename = f"deep_explanation_{filename}"
+        explanation_path = os.path.join(app.config['EXPLANATION_FOLDER'], explanation_filename)
         
-#         # Get class names
-#         class_labels = list(CLASS_MAPPINGS.values())
+        # Get class names
+        class_labels = list(CLASS_MAPPINGS.values())
         
-#         # Set matplotlib to not use GUI
-#         plt.ioff()  # Turn off interactive mode
+        # Set matplotlib to not use GUI
+        plt.ioff()  # Turn off interactive mode
         
-#         # Create figure
-#         plt.figure(figsize=(14, 12))
+        # Create figure
+        plt.figure(figsize=(14, 12))
         
-#         # Add title
-#         plt.suptitle(f"DeepExplainer SHAP Visualization - Predicted Class: {class_labels[predicted_class_index]}", 
-#                     fontsize=16, fontweight='bold')
+        # Add title
+        plt.suptitle(f"DeepExplainer SHAP Visualization - Predicted Class: {class_labels[predicted_class_index]}", 
+                    fontsize=16, fontweight='bold')
         
-#         try:
-#             # Create the deep explainer with the background data
-#             deep_explainer = shap.DeepExplainer(model, background_data)
-#             deep_shap_values = deep_explainer.shap_values(processed_img)
+        try:
+            # Create the deep explainer with the background data
+            deep_explainer = shap.DeepExplainer(model, background_data)
+            deep_shap_values = deep_explainer.shap_values(processed_img)
             
-#             # Reshape the shap_values
-#             reshaped_shap_values = []
-#             for i in range(4):  # For each class
-#                 reshaped_shap_values.append(deep_shap_values[0][:,:,:,i])
+            # Reshape the shap_values
+            reshaped_shap_values = []
+            for i in range(4):  # For each class
+                reshaped_shap_values.append(deep_shap_values[0][:,:,:,i])
 
-#             shap.image_plot(reshaped_shap_values, processed_img[0], class_labels)
+            shap.image_plot(reshaped_shap_values, processed_img[0], class_labels)
 
-#             # Add explanation text
-#             plt.figtext(0.5, 0.01, 
-#                       "Red areas positively contribute to the class. Blue areas negatively contribute.",
-#                       ha="center", fontsize=10, bbox={"facecolor":"white", "alpha":0.5, "pad":5})
+            # Add explanation text
+            plt.figtext(0.5, 0.01, 
+                      "Red areas positively contribute to the class. Blue areas negatively contribute.",
+                      ha="center", fontsize=10, bbox={"facecolor":"white", "alpha":0.5, "pad":5})
             
-#             # Save figure
-#             plt.savefig(explanation_path, bbox_inches='tight', dpi=100)
-#             plt.close()
+            # Save figure
+            plt.savefig(explanation_path, bbox_inches='tight', dpi=100)
+            plt.close()
             
-#             return explanation_filename
+            return explanation_filename
 
-#         except Exception as e:
-#             print(f"DeepExplainer visualization failed: {e}")
-#             import traceback
-#             traceback.print_exc()
-#             return None
+        except Exception as e:
+            print(f"DeepExplainer visualization failed: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
             
-#     except Exception as e:
-#         print(f"Error generating DeepExplainer explanation: {e}")
-#         import traceback
-#         traceback.print_exc()
-#         return None
+    except Exception as e:
+        print(f"Error generating DeepExplainer explanation: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
     
-# def load_background_data():
-#     """Load background data for SHAP explanations on app startup"""
-#     global background_data
+def load_background_data():
+    """Load background data for SHAP explanations on app startup"""
+    global background_data
     
-#     if os.path.exists(BACKGROUND_DATA_FILE):
-#         print("Loading background data from disk...")
-#         try:
-#             with open(BACKGROUND_DATA_FILE, 'rb') as f:
-#                 background_data = pickle.load(f)
-#             print("Background data loaded successfully.")
-#             return True
-#         except Exception as e:
-#             print(f"Failed to load background data: {e}")
-#             background_data = None
-#     return False
+    if os.path.exists(BACKGROUND_DATA_FILE):
+        print("Loading background data from disk...")
+        try:
+            with open(BACKGROUND_DATA_FILE, 'rb') as f:
+                background_data = pickle.load(f)
+            print("Background data loaded successfully.")
+            return True
+        except Exception as e:
+            print(f"Failed to load background data: {e}")
+            background_data = None
+    return False
 
 @app.route('/')
 def home():
@@ -421,10 +374,10 @@ def upload_file():
                     result['predicted_class_index']
                 )
                 
-                # deep_explanation = generate_deep_shap_explanation(
-                #     filepath, 
-                #     result['predicted_class_index']
-                # )
+                deep_explanation = generate_deep_shap_explanation(
+                    filepath, 
+                    result['predicted_class_index']
+                )
             
             return jsonify({
                 'success': True,
@@ -456,19 +409,11 @@ def handle_exception(e):
         'error': f"Server error: {str(e)}"
     }), 500
 
-# if __name__ == '__main__':
-#     # load_background_data()
-#     port = int(os.environ.get("PORT", 8000)) # Default to 8000 if not set
-#     app.run(host="0.0.0.0", port=port)
-
 if __name__ == '__main__':
-    handler = RotatingFileHandler('app.log', maxBytes=10000, backupCount=1)
-    handler.setLevel(logging.INFO)
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
-else:
-    # For Azure Web App
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-    app.logger.addHandler(handler)
-    app.logger.setLevel(logging.INFO)
+    load_background_data()
+    port = int(os.environ.get("PORT", 8000)) # Default to 8000 if not set
+    app.run(host="0.0.0.0", port=port)
+    app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 600  # Set timeout to 600 seconds
+    # Initialize explainer in background
+    # Note: We'll initialize the explainer on demand instead of at startup
+    #app.run(debug=False)  # Set debug to False to avoid issues with multiple threads
