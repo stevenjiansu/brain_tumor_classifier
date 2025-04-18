@@ -19,7 +19,7 @@ MediExplain AI is an innovative tool designed to assist medical professionals in
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/stevenjiansu/brain_tumor_classifier
    cd brain_tumor_classifier_test
    ```
 
